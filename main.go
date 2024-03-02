@@ -15,7 +15,8 @@ func main() {
 	objectsList = append(objectsList, rl.NewRectangle(400, 200, 100, 100))
 
 	for !rl.WindowShouldClose() {
-		move(&objectsList)
+		moveByArrow(&objectsList)
+		clickToCreateRect(&objectsList)
 		draw(&time, objectsList)
 	}
 }
@@ -36,7 +37,7 @@ func draw(time *float32, objectsList []interface{}) {
 	*time += rl.GetFrameTime()
 }
 
-func move(objectsList *[]interface{}) {
+func moveByArrow(objectsList *[]interface{}) {
 	// get input
 	if rl.IsKeyDown(rl.KeyRight) {
 		for i, obj := range *objectsList {
@@ -57,5 +58,16 @@ func move(objectsList *[]interface{}) {
 		for i, obj := range *objectsList {
 			(*objectsList)[i] = rl.NewRectangle(obj.(rl.Rectangle).X, obj.(rl.Rectangle).Y+1, obj.(rl.Rectangle).Width, obj.(rl.Rectangle).Height)
 		}
+	}
+
+}
+
+func clickToCreateRect(objectsList *[]interface{}) {
+	if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		mouseX := rl.GetMouseX()
+		mouseY := rl.GetMouseY()
+		mouseXFloat32 := float32(mouseX)
+		mouseYFloat32 := float32(mouseY)
+		*objectsList = append(*objectsList, rl.NewRectangle(mouseXFloat32, mouseYFloat32, 1, 1))
 	}
 }
