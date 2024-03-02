@@ -1,6 +1,6 @@
 package model
 
-type rectangle struct {
+type Rectangle struct {
 	x      int32
 	y      int32
 	width  int32
