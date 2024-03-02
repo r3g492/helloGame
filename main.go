@@ -16,19 +16,20 @@ func main() {
 
 	for !rl.WindowShouldClose() {
 		moveByArrow(&objectsList)
+		clickToDeleteRect(&objectsList)
 		clickToCreateRect(&objectsList)
-		draw(&time, objectsList)
+		draw(&time, &objectsList)
 	}
 }
 
-func draw(time *float32, objectsList []interface{}) {
+func draw(time *float32, objectsList *[]interface{}) {
 	rl.BeginDrawing()
 
 	rl.ClearBackground(rl.Black)
 	timeText := fmt.Sprintf("%02.02f seconds", *time)
 	rl.DrawText("cur time: "+timeText, 650, 1, 5, rl.Green)
 
-	for _, obj := range objectsList {
+	for _, obj := range *objectsList {
 		rl.DrawRectangleRec(obj.(rl.Rectangle), rl.Red)
 	}
 
@@ -62,12 +63,27 @@ func moveByArrow(objectsList *[]interface{}) {
 
 }
 
+func clickToDeleteRect(objectsList *[]interface{}) {
+	if rl.IsMouseButtonDown(rl.MouseRightButton) {
+		mouseX := rl.GetMouseX()
+		mouseY := rl.GetMouseY()
+		mouseXFloat32 := float32(mouseX)
+		mouseYFloat32 := float32(mouseY)
+		for i, obj := range *objectsList {
+			if rl.CheckCollisionPointRec(rl.NewVector2(mouseXFloat32, mouseYFloat32), obj.(rl.Rectangle)) {
+				*objectsList = append((*objectsList)[:i], (*objectsList)[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
 func clickToCreateRect(objectsList *[]interface{}) {
 	if rl.IsMouseButtonDown(rl.MouseLeftButton) {
 		mouseX := rl.GetMouseX()
 		mouseY := rl.GetMouseY()
 		mouseXFloat32 := float32(mouseX)
 		mouseYFloat32 := float32(mouseY)
-		*objectsList = append(*objectsList, rl.NewRectangle(mouseXFloat32, mouseYFloat32, 1, 1))
+		*objectsList = append(*objectsList, rl.NewRectangle(mouseXFloat32, mouseYFloat32, 50, 50))
 	}
 }
