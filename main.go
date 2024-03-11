@@ -5,18 +5,53 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func main() {
-	rl.InitWindow(800, 450, "raylib [core] example - basic window")
-	defer rl.CloseWindow()
-	rl.SetTargetFPS(60)
+var windowWidth int32 = 1280
+var windowHeight int32 = 800
+var fps int32 = 60
 
-	var time float32 = 0.0
-	var objectsList []interface{}
+func main() {
+	rl.InitWindow(windowWidth, windowHeight, "my little game")
+	defer rl.CloseWindow()
+	rl.SetTargetFPS(fps)
+
+	camera := rl.Camera{}
+	camera.Position = rl.NewVector3(10.0, 10.0, 10.0)
+	camera.Target = rl.NewVector3(0.0, 0.0, 0.0)
+	camera.Up = rl.NewVector3(0.0, 1.0, 0.0)
+	camera.Fovy = 45.0
+	camera.Projection = rl.CameraPerspective
+
+	cubePosition := rl.NewVector3(0.0, 0.0, 0.0)
+
+	rl.DisableCursor()
+
 	for !rl.WindowShouldClose() {
-		moveByArrow(&objectsList)
-		clickToDelete(&objectsList)
-		clickToCreate(&objectsList)
-		draw(&time, &objectsList)
+		rl.UpdateCamera(&camera, rl.CameraFree)
+
+		if rl.IsKeyDown('Z') {
+			camera.Target = rl.NewVector3(0.0, 0.0, 0.0)
+		}
+
+		rl.BeginDrawing()
+
+		rl.ClearBackground(rl.RayWhite)
+
+		rl.BeginMode3D(camera)
+
+		rl.DrawCube(cubePosition, 2.0, 2.0, 2.0, rl.Red)
+		rl.DrawCubeWires(cubePosition, 2.0, 2.0, 2.0, rl.Maroon)
+		rl.DrawGrid(10, 1.0)
+
+		rl.EndMode3D()
+
+		rl.DrawRectangle(10, 10, 220, 70, rl.Fade(rl.SkyBlue, 0.5))
+		rl.DrawRectangleLines(10, 10, 220, 70, rl.Blue)
+
+		rl.DrawText("Free camera default controls:", 20, 20, 10, rl.Black)
+		rl.DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, rl.DarkGray)
+		rl.DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, rl.DarkGray)
+
+		rl.EndDrawing()
 	}
 }
 
@@ -25,7 +60,11 @@ func draw(time *float32, objectsList *[]interface{}) {
 
 	rl.ClearBackground(rl.Black)
 	timeText := fmt.Sprintf("%02.02f seconds", *time)
-	rl.DrawText("cur time: "+timeText, 650, 1, 5, rl.Green)
+
+	var windowWidthFloat = float32(windowWidth)
+	var windowWidth90 = windowWidthFloat * 0.9
+	var rightUpper = rl.NewVector2(windowWidth90, 1)
+	rl.DrawText("cur time: "+timeText, int32(rightUpper.X), int32(rightUpper.Y), 5, rl.Green)
 
 	for _, obj := range *objectsList {
 		rl.DrawCircle(int32(obj.(rl.Rectangle).X), int32(obj.(rl.Rectangle).Y), 5, rl.Blue)
