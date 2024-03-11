@@ -26,7 +26,7 @@ func main() {
 	rl.DisableCursor()
 
 	for !rl.WindowShouldClose() {
-		rl.UpdateCamera(&camera, rl.CameraFree)
+		rl.UpdateCamera(&camera, rl.CameraFirstPerson)
 
 		if rl.IsKeyDown('Z') {
 			camera.Target = rl.NewVector3(0.0, 0.0, 0.0)
@@ -41,6 +41,9 @@ func main() {
 		rl.DrawCube(cubePosition, 2.0, 2.0, 2.0, rl.Red)
 		rl.DrawCubeWires(cubePosition, 2.0, 2.0, 2.0, rl.Maroon)
 		rl.DrawGrid(10, 1.0)
+
+		rl.DrawCube(rl.NewVector3(-2.0, 0.0, 0.0), 1.0, 2.0, 1.0, rl.Green)
+		rl.DrawCubeWires(rl.NewVector3(-2.0, 0.0, 0.0), 1.0, 2.0, 1.0, rl.Lime)
 
 		rl.EndMode3D()
 
