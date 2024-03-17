@@ -9,61 +9,37 @@ import (
 var windowWidth int32 = 1280
 var windowHeight int32 = 800
 var fps int32 = 60
-var nodes []Node
-var player Player
+var grids []Grid
+var chosenGridPlayerOne *Grid
+var chosenGridPlayerTwo *Grid
+var turn int32 = 1
 
-type Node struct {
-	Images    []rl.Texture2D
-	x         int32
-	y         int32
-	direction int32
+type Grid struct {
+	Width int32
+	x     int32
+	y     int32
+	Unit  *Unit
 }
 
-func createNode(x int32, y int32, direction int32) {
-	images := make([]rl.Texture2D, 4)
-	for i := 0; i < 4; i++ {
-		image := rl.LoadImage("picture/0" + fmt.Sprintf("%d", i+1) + ".png")
-		if image.Width == 0 || image.Height == 0 {
-			fmt.Println("Failed to load the image.")
-		} else {
-			fmt.Println("Image loaded successfully.")
+func initGrids() {
+	for i := int32(200); i < 1100; i += 100 {
+		for j := int32(200); j < 700; j += 100 {
+			grid := Grid{Width: 100, x: i, y: j}
+			grids = append(grids, grid)
 		}
-		texture := rl.LoadTextureFromImage(image)
-		rl.UnloadImage(image)
-		images[i] = texture
 	}
-	node := Node{Images: images, x: x, y: y, direction: direction}
-	nodes = append(nodes, node)
 }
 
-type Player struct {
-	Images    []rl.Texture2D
-	x         int32
-	y         int32
-	moveSpeed int32
-	direction int32
+type Unit struct {
+	Image rl.Texture2D
+	side  int32
 }
 
-func initPlayer(x int32, y int32, direction int32, moveSpeed int32) {
-	images := make([]rl.Texture2D, 4)
-	for i := 0; i < 4; i++ {
-		image := rl.LoadImage("picture/0" + fmt.Sprintf("%d", i+1) + ".png")
-		if image.Width == 0 || image.Height == 0 {
-			fmt.Println("Failed to load the image.")
-		} else {
-			fmt.Println("Image loaded successfully.")
-		}
-		texture := rl.LoadTextureFromImage(image)
-		rl.UnloadImage(image)
-		images[i] = texture
-	}
-	player = Player{
-		Images:    images,
-		x:         x,
-		y:         y,
-		direction: direction,
-		moveSpeed: moveSpeed,
-	}
+func initUnit() {
+	image := rl.LoadImage("picture/01.png")
+	texture := rl.LoadTextureFromImage(image)
+	unit := Unit{Image: texture, side: 1}
+	grids[0].Unit = &unit
 }
 
 func main() {
@@ -74,87 +50,71 @@ func main() {
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(fps)
 
-	createNode(100, 100, 0)
-	initPlayer(200, 200, 0, 30)
+	initGrids()
+	initUnit()
 
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
-		decideNodeDirection()
-		drawNodes()
 
-		decidePlayerDirection()
-		drawPlayer()
+		drawGrid()
+		drawChosenGrid()
+		detectClickOnGrid()
 
-		rl.DrawText("My little game", 10, 10, 20, rl.White)
 		rl.ClearBackground(rl.Black)
 		rl.EndDrawing()
 	}
 }
 
-func decideNodeDirection() {
-	for i, _ := range nodes {
-		random := rl.GetRandomValue(0, 3)
-		nodes[i].direction = int32(random)
-
-		if random == 0 {
-			nodes[i].y += 1
-		}
-		if random == 1 {
-			nodes[i].x += 1
-		}
-		if random == 2 {
-			nodes[i].y -= 1
-		}
-		if random == 3 {
-			nodes[i].x -= 1
+func drawGrid() {
+	for _, grid := range grids {
+		rl.DrawRectangleLines(grid.x, grid.y, grid.Width, grid.Width, rl.White)
+		if grid.Unit != nil {
+			rl.DrawTexture(grid.Unit.Image, grid.x, grid.y, rl.White)
 		}
 	}
 }
 
-func decidePlayerDirection() {
-	if rl.IsKeyDown(rl.KeyS) {
-		if isMovable(player.x, player.y+player.moveSpeed) {
-			player.y += player.moveSpeed
-		}
-		player.direction = 2
+func drawChosenGrid() {
+	if chosenGridPlayerOne != nil {
+		rl.DrawRectangleLines(chosenGridPlayerOne.x, chosenGridPlayerOne.y, chosenGridPlayerOne.Width, chosenGridPlayerOne.Width, rl.Red)
 	}
-	if rl.IsKeyDown(rl.KeyW) {
-		if isMovable(player.x, player.y-player.moveSpeed) {
-			player.y -= player.moveSpeed
-		}
-		player.direction = 0
-	}
-	if rl.IsKeyDown(rl.KeyA) {
-		if isMovable(player.x-player.moveSpeed, player.y) {
-			player.x -= player.moveSpeed
-		}
-		player.direction = 3
-	}
-	if rl.IsKeyDown(rl.KeyD) {
-		if isMovable(player.x+player.moveSpeed, player.y) {
-			player.x += player.moveSpeed
-		}
-		player.direction = 1
+	if chosenGridPlayerTwo != nil {
+		rl.DrawRectangleLines(chosenGridPlayerTwo.x, chosenGridPlayerTwo.y, chosenGridPlayerTwo.Width, chosenGridPlayerTwo.Width, rl.Blue)
 	}
 }
 
-func isMovable(x int32, y int32) bool {
-	if x < 0 || y < 0 || x > windowWidth-100 || y > windowHeight-100 {
-		return false
+func detectClickOnGrid() {
+	if turn != 1 {
+		return
 	}
-	return true
-}
 
-func drawNodes() {
-	for _, n := range nodes {
-		rl.DrawTexture(n.Images[n.direction], n.x, n.y, rl.White)
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		mousePos := rl.GetMousePosition()
+		for i := range grids {
+			grid := &grids[i]
+			if mousePos.X > float32(grid.x) && mousePos.X < float32(grid.x+grid.Width) && mousePos.Y > float32(grid.y) && mousePos.Y < float32(grid.y+grid.Width) {
+				chosenGridPlayerOne = grid
+				break
+			}
+		}
 	}
-}
 
-func drawPlayer() {
-	rl.DrawTexture(player.Images[player.direction], player.x, player.y, rl.White)
-}
+	if rl.IsMouseButtonPressed(rl.MouseRightButton) {
+		mousePos := rl.GetMousePosition()
+		for i := range grids {
+			grid := &grids[i]
+			if mousePos.X > float32(grid.x) &&
+				mousePos.X < float32(grid.x+grid.Width) &&
+				mousePos.Y > float32(grid.y) &&
+				mousePos.Y < float32(grid.y+grid.Width) {
 
-func playerFire() {
-
+				if chosenGridPlayerOne != nil && chosenGridPlayerOne.Unit != nil {
+					grid.Unit = chosenGridPlayerOne.Unit
+					chosenGridPlayerOne.Unit = nil
+					chosenGridPlayerOne = grid
+					break
+				}
+			}
+		}
+	}
 }
