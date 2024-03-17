@@ -12,10 +12,12 @@ const (
 )
 
 type Snake struct {
-	Position rl.Vector2
-	Size     rl.Vector2
-	Speed    rl.Vector2
-	Color    rl.Color
+	Position  rl.Vector2
+	Size      rl.Vector2
+	Speed     rl.Vector2
+	Color     rl.Color
+	Direction int
+	Images    [4]rl.Texture2D
 }
 
 type Score struct {
@@ -52,10 +54,11 @@ func InitGame() {
 		snake[i].Position = rl.NewVector2(offset.X/2, offset.Y/2)
 		snake[i].Size = rl.NewVector2(squareSize, squareSize)
 		snake[i].Speed = rl.NewVector2(squareSize, 0)
+		snake[i].Direction = 1
 		if i == 0 {
-			snake[i].Color = rl.DarkBlue
+			snake[i].Color = rl.DarkBrown
 		} else {
-			snake[i].Color = rl.Blue
+			snake[i].Color = rl.Beige
 		}
 	}
 
@@ -63,9 +66,20 @@ func InitGame() {
 		snakePosition[i] = rl.NewVector2(0.0, 0.0)
 	}
 
+	snakeImages := []string{"picture/01.png", "picture/02.png", "picture/03.png", "picture/04.png"}
+	for i, imgPath := range snakeImages {
+		snake[0].Images[i] = rl.LoadTexture(imgPath)
+	}
+
 	score.Size = rl.NewVector2(squareSize, squareSize)
-	score.Color = rl.SkyBlue
+	score.Color = rl.Gold
 	score.Active = false
+}
+
+func UnloadGame() {
+	for i := 0; i < len(snake[0].Images); i++ {
+		rl.UnloadTexture(snake[0].Images[i])
+	}
 }
 
 func UpdateGame() {
@@ -77,18 +91,22 @@ func UpdateGame() {
 		if !pause {
 			if rl.IsKeyPressed(rl.KeyRight) && (snake[0].Speed.X == 0) && allowMove {
 				snake[0].Speed = rl.NewVector2(squareSize, 0)
+				snake[0].Direction = 1
 				allowMove = false
 			}
 			if rl.IsKeyPressed(rl.KeyLeft) && (snake[0].Speed.X == 0) && allowMove {
 				snake[0].Speed = rl.NewVector2(-squareSize, 0)
+				snake[0].Direction = 3
 				allowMove = false
 			}
 			if rl.IsKeyPressed(rl.KeyUp) && (snake[0].Speed.Y == 0) && allowMove {
 				snake[0].Speed = rl.NewVector2(0, -squareSize)
+				snake[0].Direction = 0
 				allowMove = false
 			}
 			if rl.IsKeyPressed(rl.KeyDown) && (snake[0].Speed.Y == 0) && allowMove {
 				snake[0].Speed = rl.NewVector2(0, squareSize)
+				snake[0].Direction = 2
 				allowMove = false
 			}
 
@@ -155,7 +173,14 @@ func DrawGame() {
 	rl.ClearBackground(rl.RayWhite)
 
 	if !gameOver {
-		for i := 0; i < counterTail; i++ {
+		originalImageSize := float32(100) // Example, adjust to your images' actual size
+		scaleFactor := squareSize / originalImageSize
+
+		if counterTail > 0 {
+			rl.DrawTextureEx(snake[0].Images[snake[0].Direction], snake[0].Position, 0.0, scaleFactor, rl.White)
+		}
+
+		for i := 1; i < counterTail; i++ {
 			rl.DrawRectangleV(snake[i].Position, snake[i].Size, snake[i].Color)
 		}
 
@@ -184,6 +209,6 @@ func main() {
 		UpdateGame()
 		DrawGame()
 	}
-
+	UnloadGame()
 	rl.CloseWindow()
 }
