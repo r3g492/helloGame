@@ -36,10 +36,12 @@ type Unit struct {
 }
 
 func initUnit() {
-	image := rl.LoadImage("picture/01.png")
-	texture := rl.LoadTextureFromImage(image)
-	unit := Unit{Image: texture, side: 1}
-	grids[0].Unit = &unit
+	texture := rl.LoadTextureFromImage(rl.LoadImage("picture/01.png"))
+	grids[0].Unit = &Unit{Image: texture, side: 1}
+
+	// enemy
+	texture = rl.LoadTextureFromImage(rl.LoadImage("picture/02.png"))
+	grids[9].Unit = &Unit{Image: texture, side: 2}
 }
 
 func main() {
