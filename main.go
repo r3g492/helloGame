@@ -113,21 +113,36 @@ func decideNodeDirection() {
 
 func decidePlayerDirection() {
 	if rl.IsKeyDown(rl.KeyS) {
-		player.y += player.moveSpeed
+		if isMovable(player.x, player.y+player.moveSpeed) {
+			player.y += player.moveSpeed
+		}
 		player.direction = 2
 	}
 	if rl.IsKeyDown(rl.KeyW) {
-		player.y -= player.moveSpeed
+		if isMovable(player.x, player.y-player.moveSpeed) {
+			player.y -= player.moveSpeed
+		}
 		player.direction = 0
 	}
 	if rl.IsKeyDown(rl.KeyA) {
-		player.x -= player.moveSpeed
+		if isMovable(player.x-player.moveSpeed, player.y) {
+			player.x -= player.moveSpeed
+		}
 		player.direction = 3
 	}
 	if rl.IsKeyDown(rl.KeyD) {
-		player.x += player.moveSpeed
+		if isMovable(player.x+player.moveSpeed, player.y) {
+			player.x += player.moveSpeed
+		}
 		player.direction = 1
 	}
+}
+
+func isMovable(x int32, y int32) bool {
+	if x < 0 || y < 0 || x > windowWidth-100 || y > windowHeight-100 {
+		return false
+	}
+	return true
 }
 
 func drawNodes() {
