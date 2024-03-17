@@ -1,122 +1,189 @@
 package main
 
 import (
-	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"os"
 )
 
-var windowWidth int32 = 1280
-var windowHeight int32 = 800
-var fps int32 = 60
-var grids []Grid
-var chosenGridPlayerOne *Grid
-var chosenGridPlayerTwo *Grid
-var turn int32 = 1
+const (
+	snakeLength  = 256
+	squareSize   = 31
+	screenWidth  = 1200
+	screenHeight = 800
+)
 
-type Grid struct {
-	Width int32
-	x     int32
-	y     int32
-	Unit  *Unit
+type Snake struct {
+	Position rl.Vector2
+	Size     rl.Vector2
+	Speed    rl.Vector2
+	Color    rl.Color
 }
 
-func initGrids() {
-	for i := int32(200); i < 1100; i += 100 {
-		for j := int32(200); j < 700; j += 100 {
-			grid := Grid{Width: 100, x: i, y: j}
-			grids = append(grids, grid)
+type Score struct {
+	Position rl.Vector2
+	Size     rl.Vector2
+	Active   bool
+	Color    rl.Color
+}
+
+var (
+	framesCounter = 0
+	gameOver      = false
+	pause         = false
+	score         = Score{}
+	snake         [snakeLength]Snake
+	snakePosition [snakeLength]rl.Vector2
+	allowMove     = false
+	offset        = rl.Vector2{}
+	counterTail   = 1
+)
+
+func InitGame() {
+	framesCounter = 0
+	gameOver = false
+	pause = false
+
+	counterTail = 1
+	allowMove = false
+
+	offset.X = float32(screenWidth % squareSize)
+	offset.Y = float32(screenHeight % squareSize)
+
+	for i := 0; i < snakeLength; i++ {
+		snake[i].Position = rl.NewVector2(offset.X/2, offset.Y/2)
+		snake[i].Size = rl.NewVector2(squareSize, squareSize)
+		snake[i].Speed = rl.NewVector2(squareSize, 0)
+		if i == 0 {
+			snake[i].Color = rl.DarkBlue
+		} else {
+			snake[i].Color = rl.Blue
+		}
+	}
+
+	for i := 0; i < snakeLength; i++ {
+		snakePosition[i] = rl.NewVector2(0.0, 0.0)
+	}
+
+	score.Size = rl.NewVector2(squareSize, squareSize)
+	score.Color = rl.SkyBlue
+	score.Active = false
+}
+
+func UpdateGame() {
+	if !gameOver {
+		if rl.IsKeyPressed(rl.KeyP) {
+			pause = !pause
+		}
+
+		if !pause {
+			if rl.IsKeyPressed(rl.KeyRight) && (snake[0].Speed.X == 0) && allowMove {
+				snake[0].Speed = rl.NewVector2(squareSize, 0)
+				allowMove = false
+			}
+			if rl.IsKeyPressed(rl.KeyLeft) && (snake[0].Speed.X == 0) && allowMove {
+				snake[0].Speed = rl.NewVector2(-squareSize, 0)
+				allowMove = false
+			}
+			if rl.IsKeyPressed(rl.KeyUp) && (snake[0].Speed.Y == 0) && allowMove {
+				snake[0].Speed = rl.NewVector2(0, -squareSize)
+				allowMove = false
+			}
+			if rl.IsKeyPressed(rl.KeyDown) && (snake[0].Speed.Y == 0) && allowMove {
+				snake[0].Speed = rl.NewVector2(0, squareSize)
+				allowMove = false
+			}
+
+			for i := 0; i < counterTail; i++ {
+				snakePosition[i] = snake[i].Position
+			}
+
+			if (framesCounter % 5) == 0 {
+				for i := 0; i < counterTail; i++ {
+					if i == 0 {
+						snake[0].Position.X += snake[0].Speed.X
+						snake[0].Position.Y += snake[0].Speed.Y
+						allowMove = true
+					} else {
+						snake[i].Position = snakePosition[i-1]
+					}
+				}
+			}
+
+			if (snake[0].Position.X > (screenWidth - offset.X)) ||
+				(snake[0].Position.Y > (screenHeight - offset.Y)) ||
+				(snake[0].Position.X < 0) || (snake[0].Position.Y < 0) {
+				gameOver = true
+			}
+
+			for i := 1; i < counterTail; i++ {
+				if (snake[0].Position.X == snake[i].Position.X) && (snake[0].Position.Y == snake[i].Position.Y) {
+					gameOver = true
+				}
+			}
+
+			if !score.Active {
+				score.Active = true
+				score.Position = rl.NewVector2(float32(rl.GetRandomValue(0, (screenWidth/squareSize)-1)*squareSize)+offset.X/2, float32(rl.GetRandomValue(0, (screenHeight/squareSize)-1)*squareSize)+offset.Y/2)
+
+				for i := 0; i < counterTail; i++ {
+					for (score.Position.X == snake[i].Position.X) && (score.Position.Y == snake[i].Position.Y) {
+						score.Position = rl.NewVector2(float32(rl.GetRandomValue(0, (screenWidth/squareSize)-1)*squareSize)+offset.X/2, float32(rl.GetRandomValue(0, (screenHeight/squareSize)-1)*squareSize)+offset.Y/2)
+						i = 0
+					}
+				}
+			}
+
+			if (snake[0].Position.X < (score.Position.X+score.Size.X) && (snake[0].Position.X+snake[0].Size.X) > score.Position.X) &&
+				(snake[0].Position.Y < (score.Position.Y+score.Size.Y) && (snake[0].Position.Y+snake[0].Size.Y) > score.Position.Y) {
+				snake[counterTail].Position = snakePosition[counterTail-1]
+				counterTail++
+				score.Active = false
+			}
+
+			framesCounter++
+		}
+	} else {
+		if rl.IsKeyPressed(rl.KeyEnter) {
+			InitGame()
+			gameOver = false
 		}
 	}
 }
 
-type Unit struct {
-	Image rl.Texture2D
-	side  int32
-}
+func DrawGame() {
+	rl.BeginDrawing()
 
-func initUnit() {
-	texture := rl.LoadTextureFromImage(rl.LoadImage("picture/01.png"))
-	grids[0].Unit = &Unit{Image: texture, side: 1}
+	rl.ClearBackground(rl.RayWhite)
 
-	// enemy
-	texture = rl.LoadTextureFromImage(rl.LoadImage("picture/02.png"))
-	grids[9].Unit = &Unit{Image: texture, side: 2}
+	if !gameOver {
+		for i := 0; i < counterTail; i++ {
+			rl.DrawRectangleV(snake[i].Position, snake[i].Size, snake[i].Color)
+		}
+
+		if score.Active {
+			rl.DrawRectangleV(score.Position, score.Size, score.Color)
+		}
+
+		if pause {
+			rl.DrawText("PAUSED", screenWidth/2-rl.MeasureText("GAME PAUSED", 40)/2, screenHeight/2-40, 40, rl.Gray)
+		}
+	} else {
+		rl.DrawText("PRESS [ENTER] TO PLAY", screenWidth/2-rl.MeasureText("PRESS [ENTER] TO PLAY", 20)/2, screenHeight/2-50, 20, rl.Gray)
+	}
+
+	rl.EndDrawing()
 }
 
 func main() {
-	wd, _ := os.Getwd()
-	fmt.Println("Current working directory:", wd)
+	rl.InitWindow(screenWidth, screenHeight, "snake game in raylib-go")
 
-	rl.InitWindow(windowWidth, windowHeight, "my little game")
-	defer rl.CloseWindow()
-	rl.SetTargetFPS(fps)
+	InitGame()
 
-	initGrids()
-	initUnit()
+	rl.SetTargetFPS(60)
 
 	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
-
-		drawGrid()
-		drawChosenGrid()
-		detectClickOnGrid()
-
-		rl.ClearBackground(rl.Black)
-		rl.EndDrawing()
-	}
-}
-
-func drawGrid() {
-	for _, grid := range grids {
-		rl.DrawRectangleLines(grid.x, grid.y, grid.Width, grid.Width, rl.White)
-		if grid.Unit != nil {
-			rl.DrawTexture(grid.Unit.Image, grid.x, grid.y, rl.White)
-		}
-	}
-}
-
-func drawChosenGrid() {
-	if chosenGridPlayerOne != nil {
-		rl.DrawRectangleLines(chosenGridPlayerOne.x, chosenGridPlayerOne.y, chosenGridPlayerOne.Width, chosenGridPlayerOne.Width, rl.Red)
-	}
-	if chosenGridPlayerTwo != nil {
-		rl.DrawRectangleLines(chosenGridPlayerTwo.x, chosenGridPlayerTwo.y, chosenGridPlayerTwo.Width, chosenGridPlayerTwo.Width, rl.Blue)
-	}
-}
-
-func detectClickOnGrid() {
-	if turn != 1 {
-		return
+		UpdateGame()
+		DrawGame()
 	}
 
-	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-		mousePos := rl.GetMousePosition()
-		for i := range grids {
-			grid := &grids[i]
-			if mousePos.X > float32(grid.x) && mousePos.X < float32(grid.x+grid.Width) && mousePos.Y > float32(grid.y) && mousePos.Y < float32(grid.y+grid.Width) {
-				chosenGridPlayerOne = grid
-				break
-			}
-		}
-	}
-
-	if rl.IsMouseButtonPressed(rl.MouseRightButton) {
-		mousePos := rl.GetMousePosition()
-		for i := range grids {
-			grid := &grids[i]
-			if mousePos.X > float32(grid.x) &&
-				mousePos.X < float32(grid.x+grid.Width) &&
-				mousePos.Y > float32(grid.y) &&
-				mousePos.Y < float32(grid.y+grid.Width) {
-
-				if chosenGridPlayerOne != nil && chosenGridPlayerOne.Unit != nil {
-					grid.Unit = chosenGridPlayerOne.Unit
-					chosenGridPlayerOne.Unit = nil
-					chosenGridPlayerOne = grid
-					break
-				}
-			}
-		}
-	}
+	rl.CloseWindow()
 }
